@@ -6,10 +6,8 @@ import com.alex.springrest.models.response.UserRest;
 import com.alex.springrest.services.UsersService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 
@@ -20,7 +18,10 @@ public class UsersRestController {
     @Autowired
     private UsersService usersService;
 
-    @PostMapping
+    @PostMapping(
+            consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
+            produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
+    )
     public UserRest createUser(@RequestBody @Valid UserDetailsRequestModel userDetails) {
         UserRest returnValue = new UserRest();
 
@@ -32,6 +33,14 @@ public class UsersRestController {
 
         return returnValue;
 
+    }
+
+    @GetMapping(path = "{id}", produces = { MediaType.APPLICATION_XML_VALUE, MediaType.APPLICATION_JSON_VALUE })
+    public UserRest getUserById(@PathVariable String id) {
+        UserRest returnValue = new UserRest();
+        UserDto userDto = usersService.findByUserId(id);
+        BeanUtils.copyProperties(userDto, returnValue);
+        return returnValue;
     }
 
 }
