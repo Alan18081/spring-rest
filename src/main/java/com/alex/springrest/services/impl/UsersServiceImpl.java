@@ -2,12 +2,16 @@ package com.alex.springrest.services.impl;
 
 import com.alex.springrest.dto.UserDto;
 import com.alex.springrest.entities.UserEntity;
+import com.alex.springrest.exceptions.UserServiceException;
 import com.alex.springrest.models.response.ErrorMessages;
 import com.alex.springrest.repositories.UsersRepository;
 import com.alex.springrest.services.UsersService;
 import com.alex.springrest.shared.Utils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -15,6 +19,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class UsersServiceImpl implements UsersService {
@@ -29,6 +34,16 @@ public class UsersServiceImpl implements UsersService {
     private BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @Override
+    public List<UserDto> getUsers(int page, int limit) {
+        List<UserDto> userDtoList = new ArrayList<>();
+        Pageable pageable = PageRequest.of(page, limit);
+
+        Page<UserEntity> userEntityPage = usersRepository.findAll(pageable);
+        List<UserEntity> userEntityList = userEntityPage.getContent();
+
+    }
+
+    @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         UserEntity userEntity = usersRepository.findByEmail(email);
         if(userEntity == null) {
@@ -41,7 +56,7 @@ public class UsersServiceImpl implements UsersService {
     @Override
     public UserDto createUser(UserDto userDto) {
         if(usersRepository.findByEmail(userDto.getEmail()) != null) {
-            throw new RuntimeException("User already exists");
+            throw new UserServiceException("User already exists");
         }
 
         UserEntity userEntity = new UserEntity();
@@ -84,5 +99,32 @@ public class UsersServiceImpl implements UsersService {
 
         return userDto;
 
+    }
+
+    @Override
+    public void deleteUser(String userId) {
+        UserEntity userEntity = usersRepository.findByUserId(userId);
+        if(userEntity == null) {
+            throw new RuntimeException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        }
+
+        usersRepository.delete(userEntity);
+    }
+
+    @Override
+    public UserDto updateUser(UserDto userDto) {
+        UserEntity userEntity = usersRepository.findByUserId(userDto.getUserId());
+        if(userEntity == null) {
+            throw new RuntimeException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
+        }
+
+        userEntity.setFirstName(userDto.getFirstName());
+        userEntity.setLastName(userDto.getLastName());
+
+        UserEntity updatedUserEntity = usersRepository.save(userEntity);
+
+        BeanUtils.copyProperties(updatedUserEntity, userDto);
+
+        return userDto;
     }
 }
