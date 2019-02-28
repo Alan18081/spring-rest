@@ -2,6 +2,7 @@ package com.alex.springrest.entities;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.util.List;
 
 @Entity(name = "users")
 public class UserEntity implements Serializable {
@@ -32,6 +33,9 @@ public class UserEntity implements Serializable {
 
     @Column(nullable = false)
     private boolean emailVerificationStatus = false;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<AddressEntity> addresses;
 
     public long getId() {
         return id;

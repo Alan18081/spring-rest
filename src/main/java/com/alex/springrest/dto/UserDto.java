@@ -1,6 +1,7 @@
 package com.alex.springrest.dto;
 
 import java.io.Serializable;
+import java.util.List;
 
 public class UserDto implements Serializable {
     private static final long serialVersionUID = 8833845887999038816L;
@@ -14,6 +15,15 @@ public class UserDto implements Serializable {
     private String encryptedPassword;
     private String emailVerificationToken;
     private boolean emailVerificationStatus = false;
+    private List<AddressDto> addresses;
+
+    public List<AddressDto> getAddresses() {
+        return addresses;
+    }
+
+    public void setAddresses(List<AddressDto> addresses) {
+        this.addresses = addresses;
+    }
 
     public static long getSerialVersionUID() {
         return serialVersionUID;

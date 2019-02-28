@@ -3,6 +3,7 @@ package com.alex.springrest.models.request;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotEmpty;
+import java.util.List;
 
 public class UserDetailsRequestModel {
 
@@ -19,6 +20,17 @@ public class UserDetailsRequestModel {
     @NotEmpty
     @Min(value = 6)
     private String password;
+
+    @NotEmpty
+    private List<AddressRequestModel> addresses;
+
+    public List<AddressRequestModel> getAddresses() {
+        return addresses;
+    }
+
+    public void setAddresses(List<AddressRequestModel> addresses) {
+        this.addresses = addresses;
+    }
 
     public String getFirstName() {
         return firstName;

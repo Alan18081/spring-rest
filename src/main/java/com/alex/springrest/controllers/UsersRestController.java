@@ -6,9 +6,11 @@ import com.alex.springrest.models.response.OperationStatusModel;
 import com.alex.springrest.models.response.RequestOperationStatus;
 import com.alex.springrest.models.response.UserRest;
 import com.alex.springrest.services.UsersService;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -21,6 +23,9 @@ public class UsersRestController {
 
     @Autowired
     private UsersService usersService;
+
+    @Autowired
+    private ModelMapper modelMapper;
 
     @GetMapping(
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
@@ -46,16 +51,10 @@ public class UsersRestController {
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
     )
     public UserRest createUser(@RequestBody @Valid UserDetailsRequestModel userDetails) {
-        UserRest returnValue = new UserRest();
-
-        UserDto userDto = new UserDto();
-        BeanUtils.copyProperties(userDetails, userDto);
+        UserDto userDto = modelMapper.map(userDetails, UserDto.class);
 
         UserDto createdUser = usersService.createUser(userDto);
-        BeanUtils.copyProperties(createdUser, returnValue);
-
-        return returnValue;
-
+        return modelMapper.map(createdUser, UserRest.class);
     }
 
     @GetMapping(path = "{id}", produces = { MediaType.APPLICATION_XML_VALUE, MediaType.APPLICATION_JSON_VALUE })
