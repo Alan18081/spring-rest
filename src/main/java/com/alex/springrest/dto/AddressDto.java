@@ -8,6 +8,15 @@ public class AddressDto {
     private String postalCode;
     private String type;
     private UserDto userDetails;
+    private String addressId;
+
+    public String getAddressId() {
+        return addressId;
+    }
+
+    public void setAddressId(String addressId) {
+        this.addressId = addressId;
+    }
 
     public long getId() {
         return id;
@@ -63,5 +72,19 @@ public class AddressDto {
 
     public void setUserDetails(UserDto userDetails) {
         this.userDetails = userDetails;
+    }
+
+    @Override
+    public String toString() {
+        return "AddressDto{" +
+                "id=" + id +
+                ", city='" + city + '\'' +
+                ", country='" + country + '\'' +
+                ", streetName='" + streetName + '\'' +
+                ", postalCode='" + postalCode + '\'' +
+                ", type='" + type + '\'' +
+                ", userDetails=" + userDetails +
+                ", addressId='" + addressId + '\'' +
+                '}';
     }
 }

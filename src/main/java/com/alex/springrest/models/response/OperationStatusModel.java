@@ -4,6 +4,8 @@ public class OperationStatusModel {
     private String operationName;
     private String operationResult;
 
+    public OperationStatusModel() {}
+
     public OperationStatusModel(String operationName, String operationResult) {
         this.operationName = operationName;
         this.operationResult = operationResult;

@@ -3,6 +3,7 @@ package com.alex.springrest.models.request;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotEmpty;
+import java.util.ArrayList;
 import java.util.List;
 
 public class UserDetailsRequestModel {
@@ -21,8 +22,7 @@ public class UserDetailsRequestModel {
     @Min(value = 6)
     private String password;
 
-    @NotEmpty
-    private List<AddressRequestModel> addresses;
+    private List<AddressRequestModel> addresses = new ArrayList<>();
 
     public List<AddressRequestModel> getAddresses() {
         return addresses;

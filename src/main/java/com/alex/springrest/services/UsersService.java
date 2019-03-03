@@ -1,5 +1,6 @@
 package com.alex.springrest.services;
 
+import com.alex.springrest.dto.AddressDto;
 import com.alex.springrest.dto.UserDto;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
@@ -18,5 +19,13 @@ public interface UsersService extends UserDetailsService {
     UserDto updateUser(UserDto userDto);
 
     void deleteUser(String userId);
+
+    List<AddressDto> getAddresses(String userId);
+
+    boolean verifyEmailToken(String token);
+
+    boolean resetPassword(String email);
+
+    boolean setNewPassword(String token, String password);
 
 }

@@ -1,21 +1,33 @@
 package com.alex.springrest.controllers;
 
+import com.alex.springrest.dto.AddressDto;
 import com.alex.springrest.dto.UserDto;
+import com.alex.springrest.models.request.PasswordResetRequestModel;
+import com.alex.springrest.models.request.SetNewPasswordRequestModel;
 import com.alex.springrest.models.request.UserDetailsRequestModel;
+import com.alex.springrest.models.response.AddressRest;
 import com.alex.springrest.models.response.OperationStatusModel;
 import com.alex.springrest.models.response.RequestOperationStatus;
 import com.alex.springrest.models.response.UserRest;
+import com.alex.springrest.services.AddressesService;
 import com.alex.springrest.services.UsersService;
 import org.modelmapper.ModelMapper;
+import org.modelmapper.TypeToken;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.Link;
+import static org.springframework.hateoas.mvc.ControllerLinkBuilder.*;
+
+import org.springframework.hateoas.Resource;
+import org.springframework.hateoas.Resources;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/users")
@@ -23,6 +35,9 @@ public class UsersRestController {
 
     @Autowired
     private UsersService usersService;
+
+    @Autowired
+    private AddressesService addressesService;
 
     @Autowired
     private ModelMapper modelMapper;
@@ -44,6 +59,59 @@ public class UsersRestController {
         }
 
         return returnValue;
+    }
+
+    @GetMapping(path = "{userId}/addresses",
+            consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
+            produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
+    )
+    public Resources<AddressRest> getUserAddresses(@PathVariable String userId) {
+        List<AddressDto> addressDtos = usersService.getAddresses(userId);
+
+        if(addressDtos == null || addressDtos.isEmpty()) {
+            return new Resources<>(new ArrayList<>());
+        }
+
+        Type listType = new TypeToken<List<AddressRest>>() {}.getType();
+
+        List<AddressRest> addressRestList = modelMapper.map(addressDtos, listType);
+        return new Resources<>(addressRestList.stream().map(addressRest -> {
+            Link addressLink = linkTo(methodOn(UsersRestController.class).getUserAddressById(userId, addressRest.getAddressId())).withRel("address");
+            Link userLink = linkTo(methodOn(UsersRestController.class).getUserById(userId)).withRel("user");
+
+            addressRest.add(addressLink);
+            addressRest.add(userLink);
+            return addressRest;
+        }).collect(Collectors.toList()));
+    }
+
+    @GetMapping(path = "{userId}/addresses/{id}",
+            consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
+            produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
+    )
+    public Resource<AddressRest> getUserAddressById(@PathVariable String userId, @PathVariable String id) {
+        AddressDto addressDto = addressesService.getAddressById(userId, id);
+        Link addressLink = linkTo(methodOn(UsersRestController.class).getUserAddressById(userId, id)).withSelfRel();
+        Link userLink = linkTo(UsersRestController.class).slash(userId).withRel("user");
+        AddressRest addressRest = modelMapper.map(addressDto, AddressRest.class);
+        addressRest.add(addressLink);
+        addressRest.add(userLink);
+        return new Resource<>(addressRest);
+    }
+
+    @GetMapping(path = "email-verification/{token}")
+    public OperationStatusModel verifyEmailToken(@PathVariable("token") String token) {
+        OperationStatusModel operationStatusModel = new OperationStatusModel();
+        operationStatusModel.setOperationName(RequestOperationName.EMAIL_VERIFICATION.name());
+
+        boolean isVerified = usersService.verifyEmailToken(token);
+        if(isVerified) {
+            operationStatusModel.setOperationResult(RequestOperationStatus.SUCCESS.name());
+        } else {
+            operationStatusModel.setOperationResult(RequestOperationStatus.ERROR.name());
+        }
+
+        return operationStatusModel;
     }
 
     @PostMapping(
@@ -80,9 +148,39 @@ public class UsersRestController {
     }
 
     @DeleteMapping("{id}")
-    public OperationStatusModel deleteUserById(@PathVariable String userId) {
-        usersService.deleteUser(userId);
+    public OperationStatusModel deleteUserById(@PathVariable String id) {
+        usersService.deleteUser(id);
         return new OperationStatusModel(RequestOperationName.DELETE.name(), RequestOperationStatus.SUCCESS.name());
+    }
+
+    @PostMapping("reset-password")
+    public OperationStatusModel resetPassword(@RequestBody @Valid PasswordResetRequestModel passwordResetRequestModel) {
+        OperationStatusModel operationStatusModel = new OperationStatusModel();
+        operationStatusModel.setOperationName(RequestOperationName.RESET_PASSWORD.name());
+
+        boolean operationResult = usersService.resetPassword(passwordResetRequestModel.getEmail());
+
+        if(operationResult) {
+            operationStatusModel.setOperationResult(RequestOperationStatus.SUCCESS.name());
+        } else {
+            operationStatusModel.setOperationResult(RequestOperationStatus.ERROR.name());
+        }
+
+        return operationStatusModel;
+    }
+
+    @PostMapping("set-new-password")
+    public OperationStatusModel setNewPassword(@RequestBody @Valid SetNewPasswordRequestModel requestModel) {
+        OperationStatusModel operationStatusModel = new OperationStatusModel();
+        operationStatusModel.setOperationName(RequestOperationName.SET_NEW_PASSWORD.name());
+        boolean operationResult = usersService.setNewPassword(requestModel.getToken(), requestModel.getPassword());
+        if(operationResult) {
+            operationStatusModel.setOperationResult(RequestOperationStatus.SUCCESS.name());
+        } else {
+            operationStatusModel.setOperationResult(RequestOperationStatus.ERROR.name());
+        }
+
+        return operationStatusModel;
     }
 
 }

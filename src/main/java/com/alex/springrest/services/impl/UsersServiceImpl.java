@@ -1,12 +1,17 @@
 package com.alex.springrest.services.impl;
 
+import com.alex.springrest.dto.AddressDto;
 import com.alex.springrest.dto.UserDto;
+import com.alex.springrest.entities.PasswordResetTokenEntity;
 import com.alex.springrest.entities.UserEntity;
 import com.alex.springrest.exceptions.UserServiceException;
 import com.alex.springrest.models.response.ErrorMessages;
+import com.alex.springrest.repositories.PasswordResetTokensRepository;
 import com.alex.springrest.repositories.UsersRepository;
+import com.alex.springrest.services.EmailsService;
 import com.alex.springrest.services.UsersService;
 import com.alex.springrest.shared.Utils;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -28,10 +33,19 @@ public class UsersServiceImpl implements UsersService {
     private UsersRepository usersRepository;
 
     @Autowired
+    private PasswordResetTokensRepository passwordResetTokensRepository;
+
+    @Autowired
+    private EmailsService emailsService;
+
+    @Autowired
     private Utils utils;
 
     @Autowired
     private BCryptPasswordEncoder bCryptPasswordEncoder;
+
+    @Autowired
+    private ModelMapper modelMapper;
 
     @Override
     public List<UserDto> getUsers(int page, int limit) {
@@ -57,7 +71,30 @@ public class UsersServiceImpl implements UsersService {
             throw new UsernameNotFoundException(email);
         }
 
-        return new User(userEntity.getEmail(), userEntity.getEncryptedPassword(), new ArrayList<>());
+        return new User(
+                userEntity.getEmail(), userEntity.getEncryptedPassword(),
+                userEntity.isEmailVerificationStatus(),
+                true, true,
+                true, new ArrayList<>()
+        );
+    }
+
+    @Override
+    public boolean resetPassword(String email) {
+        UserEntity userEntity = usersRepository.findByEmail(email);
+
+        if(userEntity == null) {
+            throw new UsernameNotFoundException(ErrorMessages.NO_RECORD_FOUND.name());
+        }
+
+        String token = utils.generateResetPasswordToken(userEntity.getUserId(), userEntity.getEmail());
+
+        PasswordResetTokenEntity passwordResetTokenEntity = new PasswordResetTokenEntity(token, userEntity);
+        passwordResetTokensRepository.save(passwordResetTokenEntity);
+
+        emailsService.sendVerificationEmail(email, token);
+
+        return true;
     }
 
     @Override
@@ -66,17 +103,24 @@ public class UsersServiceImpl implements UsersService {
             throw new UserServiceException("User already exists");
         }
 
-        UserEntity userEntity = new UserEntity();
-        BeanUtils.copyProperties(userDto, userEntity);
+        for(AddressDto addressDto : userDto.getAddresses()) {
+            addressDto.setUserDetails(userDto);
+            addressDto.setAddressId(utils.generateAddressId(30));
+        }
+
+
+        UserEntity userEntity = modelMapper.map(userDto, UserEntity.class);
+        String token = utils.generateEmailVerificationToken(userEntity.getUserId());
         userEntity.setUserId(utils.generateUserId(30));
         userEntity.setEncryptedPassword(bCryptPasswordEncoder.encode(userDto.getPassword()));
+        userEntity.setEmailVerificationToken(token);
+        userEntity.setEmailVerificationStatus(false);
 
         UserEntity storedUserEntity = usersRepository.save(userEntity);
 
-        UserDto returnValue = new UserDto();
-        BeanUtils.copyProperties(storedUserEntity, returnValue);
+        emailsService.sendVerificationEmail(userEntity.getEmail(), token);
 
-        return returnValue;
+        return modelMapper.map(storedUserEntity, UserDto.class);
     }
 
     @Override
@@ -87,10 +131,7 @@ public class UsersServiceImpl implements UsersService {
             throw new UsernameNotFoundException(email);
         }
 
-        UserDto userDto = new UserDto();
-        BeanUtils.copyProperties(userEntity, userDto);
-
-        return userDto;
+        return modelMapper.map(userEntity, UserDto.class);
     }
 
     @Override
@@ -101,11 +142,24 @@ public class UsersServiceImpl implements UsersService {
             throw new RuntimeException(ErrorMessages.NO_RECORD_FOUND.getErrorMessage());
         }
 
-        UserDto userDto = new UserDto();
-        BeanUtils.copyProperties(userEntity, userDto);
+        return modelMapper.map(userEntity, UserDto.class);
+    }
 
-        return userDto;
+    @Override
+    public boolean verifyEmailToken(String token) {
+        UserEntity userEntity = usersRepository.findByEmailVerificationToken(token);
 
+        if(userEntity != null) {
+            boolean isTokenExpired = Utils.hasTokenExpired(token);
+            if(!isTokenExpired) {
+                userEntity.setEmailVerificationStatus(true);
+                userEntity.setEmailVerificationToken(null);
+                usersRepository.save(userEntity);
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Override
@@ -130,8 +184,30 @@ public class UsersServiceImpl implements UsersService {
 
         UserEntity updatedUserEntity = usersRepository.save(userEntity);
 
-        BeanUtils.copyProperties(updatedUserEntity, userDto);
+        return modelMapper.map(updatedUserEntity, UserDto.class);
+    }
 
-        return userDto;
+    @Override
+    public List<AddressDto> getAddresses(String userId) {
+        return null;
+    }
+
+    @Override
+    public boolean setNewPassword(String token, String password) {
+        PasswordResetTokenEntity passwordResetTokenEntity = passwordResetTokensRepository.findByToken(token);
+        if(passwordResetTokenEntity == null) {
+            throw new RuntimeException(ErrorMessages.NO_RECORD_FOUND.name());
+        }
+
+        if(Utils.hasTokenExpired(token)) {
+            throw new RuntimeException(ErrorMessages.AUTHENTICATION_FAILED.name());
+        }
+
+        UserEntity userEntity = passwordResetTokenEntity.getUser();
+        userEntity.setEncryptedPassword(bCryptPasswordEncoder.encode(password));
+        usersRepository.save(userEntity);
+        passwordResetTokensRepository.delete(passwordResetTokenEntity);
+
+        return true;
     }
 }
