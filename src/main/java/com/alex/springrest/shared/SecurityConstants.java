@@ -12,6 +12,7 @@ public class SecurityConstants {
     public static final String SIGN_UP_URL = "/users";
     public static final String EMAIL_VERIFICATION_URL = "/users/email-verification/**";
     public static final String PASSWORD_RESET_URL = "/users/reset-password/**";
+    public static final String H2_CONSOLE = "/h2_console/**";
 
     public static String getTokenSecret() {
         AppProperties appProperties = (AppProperties) SpringApplicationContext.getBean("appProperties");

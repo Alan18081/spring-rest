@@ -29,12 +29,15 @@ public class WebSecurity extends WebSecurityConfigurerAdapter {
             .antMatchers(HttpMethod.POST, SecurityConstants.SIGN_UP_URL).permitAll()
             .antMatchers(HttpMethod.GET, SecurityConstants.EMAIL_VERIFICATION_URL).permitAll()
             .antMatchers(HttpMethod.POST, SecurityConstants.PASSWORD_RESET_URL).permitAll()
+            .antMatchers(SecurityConstants.H2_CONSOLE).permitAll()
             .anyRequest().authenticated()
             .and()
                 .addFilter(new AuthenticationFilter(authenticationManager()))
                 .addFilter(new AuthorizationFilter(authenticationManager()))
             .sessionManagement()
             .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+
+        httpSecurity.headers().frameOptions().disable();
     }
 
     @Override

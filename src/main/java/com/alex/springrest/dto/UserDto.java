@@ -114,7 +114,6 @@ public class UserDto implements Serializable {
                 ", encryptedPassword='" + encryptedPassword + '\'' +
                 ", emailVerificationToken='" + emailVerificationToken + '\'' +
                 ", emailVerificationStatus=" + emailVerificationStatus +
-                ", addresses=" + addresses +
                 '}';
     }
 }
