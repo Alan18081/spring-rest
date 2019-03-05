@@ -11,6 +11,8 @@ import com.alex.springrest.models.response.RequestOperationStatus;
 import com.alex.springrest.models.response.UserRest;
 import com.alex.springrest.services.AddressesService;
 import com.alex.springrest.services.UsersService;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiImplicitParams;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
 import org.springframework.beans.BeanUtils;
@@ -31,6 +33,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/users")
+@CrossOrigin(origins = { "http://localhost:3000" })
 public class UsersRestController {
 
     @Autowired
@@ -45,6 +48,9 @@ public class UsersRestController {
     @GetMapping(
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
     )
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "authorization", value = "Bearer JWT token", paramType = "header")
+    })
     public List<UserRest> getUsers(
             @RequestParam(value = "page", defaultValue = "1") int page,
             @RequestParam(value = "limit", defaultValue = "25") int limit
