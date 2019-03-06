@@ -13,6 +13,7 @@ import com.alex.springrest.services.AddressesService;
 import com.alex.springrest.services.UsersService;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
+import io.swagger.annotations.ApiOperation;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
 import org.springframework.beans.BeanUtils;
@@ -71,6 +72,7 @@ public class UsersRestController {
             consumes = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE},
             produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE}
     )
+    @ApiOperation(value = "Get user addresses by user id")
     public Resources<AddressRest> getUserAddresses(@PathVariable String userId) {
         List<AddressDto> addressDtos = usersService.getAddresses(userId);
 
